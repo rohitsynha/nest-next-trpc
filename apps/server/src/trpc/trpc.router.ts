@@ -1,24 +1,25 @@
-import { INestApplication, Injectable } from '@nestjs/common';
+import { INestApplication, Injectable, Logger } from '@nestjs/common';
 import { TrpcService } from '@server/trpc/trpc.service';
 import { z } from 'zod';
 import * as trpcExpress from '@trpc/server/adapters/express';
+import { OpenAIService } from '@server/openai/openai.service';
 
 @Injectable()
 export class TrpcRouter {
-  constructor(private readonly trpc: TrpcService) {}
+  private readonly logger: Logger = new Logger(this.constructor.name);
+  constructor(private readonly trpc: TrpcService, private ai: OpenAIService) {}
 
   appRouter = this.trpc.router({
-    hello: this.trpc.procedure
+    aiChat: this.trpc.procedure
       .input(
         z.object({
-          name: z.string().optional(),
+          queryText: z.string(),
         }),
       )
       .query(({ input }) => {
-        const { name } = input;
-        return {
-          greeting: `Hello ${name ? name : 'Bilbo'}`,
-        };
+        const { queryText } = input;
+        this.logger.debug('Processing Query: ', queryText);
+        return this.ai.respond(queryText);
       }),
   });
 
